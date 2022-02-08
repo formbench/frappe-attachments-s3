@@ -6,5 +6,5 @@ from __future__ import unicode_literals
 import frappe
 import unittest
 
-class TestS3FileAttachment(unittest.TestCase):
+class TestS3FileAttachmentSettings(unittest.TestCase):
 	pass
