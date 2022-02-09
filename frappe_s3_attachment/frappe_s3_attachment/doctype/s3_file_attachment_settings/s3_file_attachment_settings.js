@@ -1,22 +1,20 @@
 // Copyright (c) 2018, Frappe and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on('S3 File Attachment Settings', {
-	refresh: function(frm) {
+frappe.ui.form.on("S3 File Attachment Settings", {
+    async migrate_existing_files(frm) {
+        frappe.throw("Migrating existing files...");
 
-	},
-	migrate_existing_files: function (frm) {
         frappe.msgprint("Local files getting migrated", "S3 Migration");
-        frappe.call({
+        const { message } = await frappe.call({
             method: "frappe_s3_attachment.controller.migrate_existing_files",
-            callback: function (data) {
-                if (data.message) {
-					frappe.msgprint('Upload Successful')
-					location.reload(true);
-                } else {
-                    frappe.msgprint('Retry');
-                }
-            }
         });
+
+        if (message) {
+            frappe.msgprint("Upload Successful");
+            location.reload(true);
+        } else {
+            frappe.msgprint("Retry");
+        }
     },
 });
