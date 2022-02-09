@@ -6,7 +6,7 @@
  "engine": "InnoDB",
  "field_order": [
   "general_configuration",
-  "is_enabled",
+  "enable_s3_file_attachment",
   "column_break_2",
   "delete_file_from_cloud",
   "aws_credentials",
@@ -46,14 +46,12 @@
   {
    "fieldname": "aws_key",
    "fieldtype": "Data",
-   "label": "AWS Key",
-   "mandatory_depends_on": "eval: doc.is_enabled"
+   "label": "AWS Key"
   },
   {
    "fieldname": "aws_secret",
    "fieldtype": "Data",
-   "label": "AWS Secret",
-   "mandatory_depends_on": "eval: doc.is_enabled"
+   "label": "AWS Secret"
   },
   {
    "fieldname": "section_break_7",
@@ -62,8 +60,7 @@
   {
    "fieldname": "region_name",
    "fieldtype": "Data",
-   "label": "S3 Bucket Region Name",
-   "mandatory_depends_on": "eval: doc.is_enabled"
+   "label": "S3 Bucket Region Name"
   },
   {
    "fieldname": "folder_name",
@@ -89,23 +86,22 @@
   {
    "fieldname": "endpoint_url",
    "fieldtype": "Data",
-   "label": "Endpoint URL",
-   "mandatory_depends_on": "eval: doc.is_enabled"
-  },
-  {
-   "default": "0",
-   "fieldname": "is_enabled",
-   "fieldtype": "Check",
-   "label": "Is Enabled"
+   "label": "Endpoint URL"
   },
   {
    "fieldname": "column_break_2",
    "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "enable_s3_file_attachment",
+   "fieldtype": "Check",
+   "label": "Enable S3 File Attachment"
   }
  ],
  "issingle": 1,
  "links": [],
- "modified": "2022-02-08 08:03:52.715498",
+ "modified": "2022-02-09 05:41:34.114821",
  "modified_by": "Administrator",
  "module": "Frappe S3 Attachment",
  "name": "S3 File Attachment Settings",
