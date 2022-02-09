@@ -27,6 +27,7 @@ def setup_custom_fields():
                 insert_after="content_hash",
                 read_only=1,
                 print_hide=1,
+                translatable=0,
             )
         ],
     }
