@@ -127,7 +127,7 @@ class S3Operations(object):
     def delete_file(self, key):
         """Delete file from s3"""
 
-        if not self.settings.delete_file_from_cloud:
+        if not key or not self.settings.delete_file_from_cloud:
             return
 
         try:
@@ -301,4 +301,4 @@ def migrate_existing_files():
 def delete_file_from_s3(doc, method):
     """Delete file from s3"""
     s3 = S3Operations()
-    s3.delete_file(doc.content_hash)
+    s3.delete_file(doc.s3_file_key)
