@@ -198,7 +198,7 @@ def upload_file_to_s3(doc, method=None):
             s3.s3_client.meta.endpoint_url, s3.settings.bucket_name, key
         )
 
-    doc.db_set(
+    doc.update(
         {
             "file_url": file_url,
             "folder": "Home/Attachments",
@@ -207,6 +207,8 @@ def upload_file_to_s3(doc, method=None):
             "s3_file_key": key,
         }
     )
+
+    doc.save()
     os.remove(file_path)
 
     if not doc.attached_to_doctype:
