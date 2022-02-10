@@ -36,7 +36,6 @@ class S3File(File):
                 return res_body.read()
 
         except Exception as e:
-            # TODO: pass or throw?
             frappe.throw(f"Error while reading file from s3: {e}")
 
     # def handle_is_private_changed(self):

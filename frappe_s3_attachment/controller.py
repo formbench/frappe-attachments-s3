@@ -10,6 +10,7 @@ import magic
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
+from urllib.parse import urlparse, parse_qs
 
 import frappe
 from frappe import _, bold
@@ -179,17 +180,16 @@ def upload_file_to_s3(doc, method=None):
 
 def _link_file_to_s3(file):
     """
-    update `file_name` and `s3_file_key` from already linked file.
+    update `file_name` and `s3_file_key` by parsing `file_url`.
     """
-    exisiting_file = frappe.get_value(
-        "File",
-        {"file_url": file.file_url, "s3_file_key": ("not in", (None, ""))},
-        ("file_name", "s3_file_key"),
-        as_dict=True,
-    )
-    if exisiting_file:
-        file.update(exisiting_file)
-        file.save()
+    file_url = urlparse(file.file_url)
+    query = parse_qs(file_url.query)
+
+    if "file_name" in query and "key" in query:
+        file.db_set({
+            "file_name": query['file_name'][0],
+            "s3_file_key": query['key'][0],
+        })
 
 
 def _upload_file_to_s3(file, s3=None):
