@@ -179,7 +179,7 @@ class S3Operations(object):
 
     def set_file_permission(self, key, private=True):
         """
-        Toggle file permission.
+        Set file permission.
         """
         try:
             self.s3_client.put_object_acl(
