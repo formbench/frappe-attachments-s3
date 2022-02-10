@@ -145,7 +145,18 @@ class S3Operations(object):
         """
         return self.s3_client.get_object(Bucket=self.settings.bucket_name, Key=key)
 
-    def get_file_url(self, key, file_name=None):
+    def get_file_url(self, key, file_name=None, is_private=True):
+        if is_private:
+            method_name = "frappe_s3_attachment.controller.generate_file"
+            return """/api/method/{0}?key={1}&file_name={2}""".format(
+                method_name, key, file_name
+            )
+
+        return "{}/{}/{}".format(
+            self.s3_client.meta.endpoint_url, self.settings.bucket_name, key
+        )
+
+    def get_signed_file_url(self, key, file_name=None):
         """
         Return url.
 
@@ -165,6 +176,19 @@ class S3Operations(object):
             Params=params,
             ExpiresIn=self.settings.get("signed_url_expiry_time") or 120,
         )
+
+    def set_file_permission(self, key, private=True):
+        """
+        Toggle file permission.
+        """
+        try:
+            self.s3_client.put_object_acl(
+                Bucket=self.settings.bucket_name,
+                Key=key,
+                ACL="private" if private else "public-read",
+            )
+        except ClientError:
+            frappe.throw(frappe._("Access denied: Could not change file permission"))
 
 
 def upload_file_to_s3(doc, method=None):
@@ -186,10 +210,12 @@ def _link_file_to_s3(file):
     query = parse_qs(file_url.query)
 
     if "file_name" in query and "key" in query:
-        file.db_set({
-            "file_name": query['file_name'][0],
-            "s3_file_key": query['key'][0],
-        })
+        file.db_set(
+            {
+                "file_name": query["file_name"][0],
+                "s3_file_key": query["key"][0],
+            }
+        )
 
 
 def _upload_file_to_s3(file, s3=None):
@@ -219,19 +245,11 @@ def _upload_file_to_s3(file, s3=None):
         file.attached_to_name,
     )
 
-    if file.is_private:
-        method_name = "frappe_s3_attachment.controller.generate_file"
-        file_url = """/api/method/{0}?key={1}&file_name={2}""".format(
-            method_name, key, file.file_name
-        )
-    else:
-        file_url = "{}/{}/{}".format(
-            s3.s3_client.meta.endpoint_url, s3.settings.bucket_name, key
-        )
-
     file.update(
         {
-            "file_url": file_url,
+            "file_url": s3.get_file_url(
+                file.s3_file_key, file.file_name, file.is_private
+            ),
             "folder": "Home/Attachments",
             "old_parent": "Home/Attachments",
             "content_hash": "",
@@ -265,7 +283,7 @@ def generate_file(key=None, file_name=None):
         return
 
     s3_upload = S3Operations()
-    frappe.local.response["location"] = s3_upload.get_file_url(key, file_name)
+    frappe.local.response["location"] = s3_upload.get_signed_file_url(key, file_name)
     frappe.local.response["type"] = "redirect"
 
 

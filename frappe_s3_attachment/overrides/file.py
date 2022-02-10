@@ -10,6 +10,12 @@ class S3File(File):
     def uploaded_to_s3(self):
         return bool(self.s3_file_key or is_s3_file_url(self.file_url or ""))
 
+    def validate(self):
+        if not self.uploaded_to_s3:
+            return super().validate()
+
+        self.handle_is_private_changed()
+
     def generate_content_hash(self):
         if not self.uploaded_to_s3:
             return super().generate_content_hash()
@@ -38,6 +44,15 @@ class S3File(File):
         except Exception as e:
             frappe.throw(f"Error while reading file from s3: {e}")
 
-    # def handle_is_private_changed(self):
-    #     if not self.uploaded_to_s3:
-    #         return super().handle_is_private_changed()
+    def handle_is_private_changed(self):
+        if not self.uploaded_to_s3:
+            return super().handle_is_private_changed()
+
+        if not self.has_value_changed("is_private"):
+            return
+
+        s3 = S3Operations()
+        s3.set_file_permission(self.s3_file_key, self.is_private)
+        self.file_url = s3.get_file_url(
+            self.s3_file_key, self.file_name, self.is_private
+        )
