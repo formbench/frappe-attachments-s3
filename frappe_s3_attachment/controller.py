@@ -308,6 +308,7 @@ def migrate_existing_files():
             "s3_file_key": ("is", "not set"),
             "file_url": ("like", "%/files/%"),
         },
+        fields=("name", "file_name"),
         order_by="modified desc",
     )
 
@@ -317,9 +318,9 @@ def migrate_existing_files():
     for index, file in enumerate(files):
         show_progress(
             files,
-            _("Local files getting migrated"),
+            _("Migrating local files to S3"),
             index,
-            _("Migrating {} ({}/{})").format(file.name, index, total),
+            _("Migrating {} ({}/{})").format(file.file_name, index, total),
         )
         try:
             _upload_file_to_s3(file.name, s3)
