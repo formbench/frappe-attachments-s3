@@ -8,7 +8,7 @@ from frappe_s3_attachment.controller import S3Operations, is_s3_file_url
 class S3File(File):
     @property
     def uploaded_to_s3(self):
-        return bool(self.s3_file_key) or is_s3_file_url(self.file_url or "")
+        return bool(self.s3_file_key or is_s3_file_url(self.file_url or ""))
 
     def generate_content_hash(self):
         if not self.uploaded_to_s3:
