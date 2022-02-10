@@ -1,21 +1,20 @@
 from __future__ import unicode_literals
 
-import random
-import string
-import datetime
-import re
 import os
+import random
+import re
+import string
 
-import magic
 import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
+import magic
 from urllib.parse import urlparse, parse_qs
 
 import frappe
 from frappe import _, bold
-from frappe.utils import get_site_path
 from frappe.desk.doctype.bulk_update.bulk_update import show_progress
+from frappe.utils import get_site_path, now_datetime
 
 from frappe_s3_attachment.utils import strip_special_chars
 
@@ -67,10 +66,8 @@ class S3Operations(object):
             random.choice(string.ascii_uppercase + string.digits) for _ in range(8)
         )
 
-        today = datetime.datetime.now()
-        year = today.strftime("%Y")
-        month = today.strftime("%m")
-        day = today.strftime("%d")
+        today = now_datetime()
+        month, day = today.strftime("%m-%d").split("-")
 
         doc_path = None
         try:
@@ -86,7 +83,7 @@ class S3Operations(object):
         if doc_path:
             return f"{doc_path}/{hash}_{file_name}"
 
-        key = f"{year}/{month}/{day}/"
+        key = f"{today.year}/{month}/{day}/"
         if parent_doctype:
             key += f"{parent_doctype}/"
 
