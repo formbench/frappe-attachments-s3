@@ -83,11 +83,12 @@ class S3Operations(object):
         if doc_path:
             return f"{doc_path}/{hash}_{file_name}"
 
-        # TODO: confirm this
-        if not parent_doctype:
-            parent_doctype = "All"
+        key = f"{year}/{month}/{day}/"
+        if parent_doctype:
+            key += f"{parent_doctype}/"
 
-        key = f"{year}/{month}/{day}/{parent_doctype}/{hash}_{file_name}"
+        key += f"{hash}_{file_name}"
+
         if self.settings.folder_name:
             key = self.settings.folder_name + key
         return key
@@ -167,6 +168,19 @@ def upload_file_to_s3(doc, method=None):
     """
     check and upload files to s3. the path check and
     """
+
+    # copied already uploaded File
+    if is_s3_file_url(doc.file_url) and not doc.s3_file_key:
+        file = frappe.get_value(
+            "File",
+            {"file_url": doc.file_url, "s3_file_key": ("not in", (None, ""))},
+            ("file_name", "s3_file_key"),
+            as_dict=True,
+        )
+        doc.update(file)
+        doc.save()
+        return
+
     s3 = S3Operations()
     exclude_doctypes = frappe.local.conf.get("ignore_s3_upload_for_doctype") or [
         "Data Import"
@@ -277,12 +291,15 @@ def upload_existing_files_s3(name, file_name):
         pass
 
 
-def s3_file_regex_match(file_url):
+def is_s3_file_url(file_url):
     """
-    Match the public file regex match.
+    Match the s3 file regex match.
     """
-    return re.match(
-        r"^(https:|/api/method/frappe_s3_attachment.controller.generate_file)", file_url
+    return bool(
+        re.match(
+            r"^(https:|/api/method/frappe_s3_attachment.controller.generate_file)",
+            file_url,
+        )
     )
 
 
@@ -295,7 +312,7 @@ def migrate_existing_files():
     files_list = frappe.get_all("File", fields=["name", "file_url", "file_name"])
     for file in files_list:
         if file["file_url"]:
-            if not s3_file_regex_match(file["file_url"]):
+            if not is_s3_file_url(file["file_url"]):
                 upload_existing_files_s3(file["name"], file["file_name"])
     return True
 
