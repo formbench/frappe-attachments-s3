@@ -1,6 +1,6 @@
 import frappe
 from frappe.utils import cint
-from frappe.core.doctype.file.file import File
+from frappe.core.doctype.file.file import File, update_existing_file_docs
 
 from frappe_s3_attachment.controller import S3Operations, is_s3_file_url
 
@@ -53,6 +53,23 @@ class S3File(File):
 
         s3 = S3Operations()
         s3.set_file_permission(self.s3_file_key, self.is_private)
+        old_file_url = self.file_url
         self.file_url = s3.get_file_url(
             self.s3_file_key, self.file_name, self.is_private
+        )
+
+        update_existing_file_docs(self)
+
+        if (
+            not self.attached_to_doctype
+            or not self.attached_to_name
+            or not self.fetch_attached_to_field(old_file_url)
+        ):
+            return
+
+        frappe.db.set_value(
+            self.attached_to_doctype,
+            self.attached_to_name,
+            self.attached_to_field,
+            self.file_url,
         )
