@@ -16,6 +16,9 @@ class S3FileAttachmentSettings(Document):
         if self.is_enabled():
             setup_custom_fields()
 
+        self.folder_name = self.folder_name.strip("/")
+        self.bucket_name = self.bucket_name.strip("/")
+
 
 def setup_custom_fields():
     custom_fields = {

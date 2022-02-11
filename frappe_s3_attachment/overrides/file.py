@@ -48,7 +48,7 @@ class S3File(File):
         if not self.uploaded_to_s3:
             return super().handle_is_private_changed()
 
-        if not self.has_value_changed("is_private"):
+        if not self.get_doc_before_save() or not self.has_value_changed("is_private"):
             return
 
         s3 = S3Operations()

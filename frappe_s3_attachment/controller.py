@@ -1,9 +1,7 @@
 from __future__ import unicode_literals
 
 import os
-import random
 import re
-import string
 
 import boto3
 from botocore.client import Config
@@ -56,42 +54,32 @@ class S3Operations(object):
                     parent_name=parent_name,
                 )
                 if key:
-                    return key.rstrip("/").lstrip("/")
+                    return key.strip("/")
             except Exception:
                 pass
 
-        file_name = file_name.replace(" ", "_")
-        file_name = strip_special_chars(file_name)
-        hash = "".join(
-            random.choice(string.ascii_uppercase + string.digits) for _ in range(8)
-        )
+        file_name = strip_special_chars(file_name.replace(" ", "_"))
+        file_name = f"{frappe.generate_hash(length=8)}_{file_name}"
 
-        today = now_datetime()
-        month, day = today.strftime("%m-%d").split("-")
-
-        doc_path = None
         try:
-            doc_path = frappe.db.get_value(
+            path = frappe.db.get_value(
                 parent_doctype,
                 filters={"name": parent_name},
                 fieldname=["s3_folder_path"],
             )
-            doc_path = doc_path.rstrip("/").lstrip("/")
-        except Exception as e:
-            print(e)
+            if path:
+                return os.path.join(path.strip("/"), file_name)
 
-        if doc_path:
-            return f"{doc_path}/{hash}_{file_name}"
+        except Exception:
+            # `s3_folder_path` field is not exist in the parent doctype
+            pass
 
-        key = f"{today.year}/{month}/{day}/"
-        if parent_doctype:
-            key += f"{parent_doctype}/"
-
-        key += f"{hash}_{file_name}"
-
-        if self.settings.folder_name:
-            key = self.settings.folder_name + key
-        return key
+        return os.path.join(
+            self.settings.folder_name or "",
+            now_datetime().strftime("%Y/%m/%d"),
+            parent_doctype or "",
+            file_name,
+        )
 
     def upload_file(
         self, file_path, file_name, is_private, parent_doctype, parent_name
@@ -149,7 +137,7 @@ class S3Operations(object):
                 method_name, key, file_name
             )
 
-        return "{}/{}/{}".format(
+        return os.path.join(
             self.s3_client.meta.endpoint_url, self.settings.bucket_name, key
         )
 
@@ -244,9 +232,7 @@ def _upload_file_to_s3(file, s3=None):
 
     file.update(
         {
-            "file_url": s3.get_file_url(
-                file.s3_file_key, file.file_name, file.is_private
-            ),
+            "file_url": s3.get_file_url(key, file.file_name, file.is_private),
             "folder": "Home/Attachments",
             "old_parent": "Home/Attachments",
             "content_hash": "",
