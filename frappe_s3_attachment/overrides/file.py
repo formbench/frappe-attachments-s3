@@ -1,6 +1,6 @@
 import frappe
 from frappe.utils import cint
-from frappe.core.doctype.file.file import File, update_existing_file_docs
+from frappe.core.doctype.file.file import File
 
 from frappe_s3_attachment.controller import S3Operations, is_s3_file_url
 
@@ -73,3 +73,24 @@ class S3File(File):
             self.attached_to_field,
             self.file_url,
         )
+
+
+def update_existing_file_docs(doc):
+    # Update is private and file url of all file docs that point to the same file
+    frappe.db.sql(
+        """
+        UPDATE `tabFile`
+        SET
+            file_url = %(file_url)s,
+            is_private = %(is_private)s
+        WHERE
+            s3_file_key = %(s3_file_key)s
+            and name != %(file_name)s
+    """,
+        dict(
+            file_url=doc.file_url,
+            is_private=doc.is_private,
+            s3_file_key=doc.s3_file_key,
+            file_name=doc.name,
+        ),
+    )
