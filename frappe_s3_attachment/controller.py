@@ -34,7 +34,7 @@ class S3Operations(object):
 
         if self.settings.aws_key and self.settings.aws_secret:
             params.aws_access_key_id = self.settings.aws_key
-            params.aws_secret_access_key = self.settings.aws_secret
+            params.aws_secret_access_key = self.settings.get_password("aws_secret")
 
         if self.settings.region_name:
             params.region_name = self.settings.region_name

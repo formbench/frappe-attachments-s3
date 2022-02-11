@@ -41,7 +41,9 @@
   {
    "fieldname": "bucket_name",
    "fieldtype": "Data",
-   "label": "Bucket Name"
+   "in_list_view": 1,
+   "label": "Bucket Name",
+   "reqd": 1
   },
   {
    "fieldname": "aws_key",
@@ -50,7 +52,7 @@
   },
   {
    "fieldname": "aws_secret",
-   "fieldtype": "Data",
+   "fieldtype": "Password",
    "label": "AWS Secret"
   },
   {
@@ -101,7 +103,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2022-02-09 05:41:34.114821",
+ "modified": "2022-02-11 03:52:51.451329",
  "modified_by": "Administrator",
  "module": "Frappe S3 Attachment",
  "name": "S3 File Attachment Settings",
