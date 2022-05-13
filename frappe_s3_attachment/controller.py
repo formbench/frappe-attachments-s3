@@ -187,7 +187,7 @@ def upload_file_to_s3(doc, method=None):
     """
     early return if doc is folder
     """
-    if not doc.file_url or not os.path.isfile(doc.file_url):
+    if doc.is_folder:
          return
 
     _upload_file_to_s3(doc)
@@ -239,8 +239,6 @@ def _upload_file_to_s3(file, s3=None):
     file.update(
         {
             "file_url": s3.get_file_url(key, file.file_name, file.is_private),
-            "folder": "Home/Attachments",
-            "old_parent": "Home/Attachments",
             "content_hash": "",
             "s3_file_key": key,
         }
@@ -252,13 +250,14 @@ def _upload_file_to_s3(file, s3=None):
     if not file.attached_to_doctype:
         return
 
-    parent_image_field = frappe.get_meta(file.attached_to_doctype).get("image_field")
-    if not parent_image_field:
-        return
+    # parent_image_field = frappe.get_meta(file.attached_to_doctype).get("image_field")
+    # if not parent_image_field:
+    #     return
 
-    frappe.db.set_value(
-        file.attached_to_doctype, file.attached_to_name, parent_image_field, file_url
-    )
+    # frappe.db.set_value(
+    #     file.attached_to_doctype, file.attached_to_name, parent_image_field, file_url
+    # )
+    file.reload()
 
 
 @frappe.whitelist()
