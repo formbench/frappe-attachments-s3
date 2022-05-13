@@ -184,6 +184,12 @@ def upload_file_to_s3(doc, method=None):
     if is_s3_file_url(doc.file_url) and not doc.s3_file_key:
         return _link_file_to_s3(doc)
 
+    """
+    early return if doc is folder
+    """
+    if not doc.file_url or not os.path.isfile(doc.file_url):
+         return
+
     _upload_file_to_s3(doc)
 
 
