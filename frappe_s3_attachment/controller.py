@@ -58,7 +58,8 @@ class S3Operations(object):
             except Exception:
                 pass
 
-        file_name = strip_special_chars(file_name.replace(" ", "_"))
+        # file_name = strip_special_chars(file_name.replace(" ", "_"))
+        # note necessary anymore, bceause the file_name input is run through quote()
         file_name = f"{frappe.generate_hash(length=8)}_{file_name}"
 
         try:
