@@ -89,7 +89,7 @@ class S3Operations(object):
         Strips the file extension to set the content_type in metadata.
         """
         mime_type = magic.from_file(file_path, mime=True)
-        key = self.key_generator(file_name, parent_doctype, parent_name)
+        key = self.key_generator(quote(file_name), parent_doctype, parent_name)
         content_type = mime_type
         try:
             extra_args = {
