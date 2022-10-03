@@ -58,8 +58,6 @@ class S3Operations(object):
             except Exception:
                 pass
 
-        # file_name = strip_special_chars(file_name.replace(" ", "_"))
-        # note necessary anymore, bceause the file_name input is run through quote()
         file_name = f"{frappe.generate_hash(length=8)}_{file_name}"
 
         try:
@@ -228,10 +226,12 @@ def _upload_file_to_s3(file, s3=None):
     if not file.is_private:
         file_url = f"public/{file_url}"
 
+    file_name = strip_special_chars(file.file_name.replace(" ", "_"))
+
     file_path = get_site_path(file_url)
     key = s3.upload_file(
         file_path,
-        quote(file.file_name),
+        file_name,
         file.is_private,
         file.attached_to_doctype,
         file.attached_to_name,
