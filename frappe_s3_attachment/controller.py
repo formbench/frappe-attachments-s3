@@ -155,7 +155,7 @@ class S3Operations(object):
         }
 
         if file_name:
-            params["ResponseContentDisposition"] = f"filename={file_name}"
+            params["ResponseContentDisposition"] = f"filename={quote(file_name)}"
 
         return self.s3_client.generate_presigned_url(
             "get_object",
