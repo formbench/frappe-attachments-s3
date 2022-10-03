@@ -49,7 +49,7 @@ class S3Operations(object):
         if hook_cmd:
             try:
                 key = frappe.get_attr(hook_cmd[0])(
-                    file_name=quote(file_name),
+                    file_name=file_name,
                     parent_doctype=parent_doctype,
                     parent_name=parent_name,
                 )
@@ -89,7 +89,7 @@ class S3Operations(object):
         Strips the file extension to set the content_type in metadata.
         """
         mime_type = magic.from_file(file_path, mime=True)
-        key = self.key_generator(quote(file_name), parent_doctype, parent_name)
+        key = self.key_generator(file_name, parent_doctype, parent_name)
         content_type = mime_type
         try:
             extra_args = {
@@ -154,7 +154,7 @@ class S3Operations(object):
         }
 
         if file_name:
-            params["ResponseContentDisposition"] = f"filename={quote(file_name)}"
+            params["ResponseContentDisposition"] = f"filename={file_name}"
 
         return self.s3_client.generate_presigned_url(
             "get_object",
@@ -230,7 +230,7 @@ def _upload_file_to_s3(file, s3=None):
     file_path = get_site_path(file_url)
     key = s3.upload_file(
         file_path,
-        quote(file.file_name),
+        file.file_name,
         file.is_private,
         file.attached_to_doctype,
         file.attached_to_name,
@@ -238,7 +238,7 @@ def _upload_file_to_s3(file, s3=None):
 
     file.update(
         {
-            "file_url": s3.get_file_url(key, quote(file.file_name), file.is_private),
+            "file_url": s3.get_file_url(key, file.file_name, file.is_private),
             "content_hash": "",
             "s3_file_key": key,
         }
