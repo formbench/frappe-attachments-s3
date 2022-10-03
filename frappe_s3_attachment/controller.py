@@ -7,7 +7,7 @@ import boto3
 from botocore.client import Config
 from botocore.exceptions import ClientError
 import magic
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote, unquote
 
 import frappe
 from frappe import _, bold
@@ -88,6 +88,7 @@ class S3Operations(object):
         Uploads a new file to S3.
         Strips the file extension to set the content_type in metadata.
         """
+        ascii_file_name = quote(file_name)
         mime_type = magic.from_file(file_path, mime=True)
         key = self.key_generator(file_name, parent_doctype, parent_name)
         content_type = mime_type
@@ -100,7 +101,7 @@ class S3Operations(object):
             }
 
             if is_private:
-                extra_args["Metadata"]["file_name"] = file_name
+                extra_args["Metadata"]["file_name"] = ascii_file_name
             else:
                 extra_args["ACL"] = "public-read"
 
