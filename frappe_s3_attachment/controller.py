@@ -49,7 +49,7 @@ class S3Operations(object):
         if hook_cmd:
             try:
                 key = frappe.get_attr(hook_cmd[0])(
-                    file_name=file_name,
+                    file_name=quote(file_name),
                     parent_doctype=parent_doctype,
                     parent_name=parent_name,
                 )
@@ -90,7 +90,7 @@ class S3Operations(object):
         """
         ascii_file_name = quote(file_name)
         mime_type = magic.from_file(file_path, mime=True)
-        key = self.key_generator(file_name, parent_doctype, parent_name)
+        key = self.key_generator(ascii_file_name, parent_doctype, parent_name)
         content_type = mime_type
         try:
             extra_args = {
