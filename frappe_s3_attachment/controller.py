@@ -226,7 +226,7 @@ def _upload_file_to_s3(file, s3=None):
     if not file.is_private:
         file_url = f"public/{file_url}"
 
-    file_name = strip_special_chars(file.file_name.replace(" ", "_"))
+    file_name = strip_special_chars(file.file_name.replace(" ", "_").replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss").replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue"))
 
     file_path = get_site_path(file_url)
     key = s3.upload_file(
