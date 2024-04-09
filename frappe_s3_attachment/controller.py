@@ -14,7 +14,7 @@ from frappe import _, bold
 from frappe.desk.doctype.bulk_update.bulk_update import show_progress
 from frappe.utils import get_site_path, now_datetime
 
-from frappe_s3_attachment.utils import strip_special_chars
+from frappe_s3_attachment.utils import strip_special_chars, strip_non_ascii
 
 
 class S3Operations(object):
@@ -226,7 +226,8 @@ def _upload_file_to_s3(file, s3=None):
     if not file.is_private:
         file_url = f"public/{file_url}"
 
-    file_name = strip_special_chars(file.file_name.replace(" ", "_").replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss").replace("Ä", "Ae").replace("Ö", "Oe").replace("Ü", "Ue"))
+    safe_file_name  = strip_special_chars(file.file_name)
+    file_name = strip_non_ascii(file.file_name)
 
     file_path = get_site_path(file_url)
     key = s3.upload_file(
@@ -239,7 +240,7 @@ def _upload_file_to_s3(file, s3=None):
 
     file.update(
         {
-            "file_url": s3.get_file_url(key, quote(file.file_name), file.is_private),
+            "file_url": s3.get_file_url(key, quote(safe_file_name), file.is_private),
             "content_hash": "",
             "s3_file_key": key,
         }
