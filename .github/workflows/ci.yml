@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ci-s3-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site-tests:
+    runs-on: ubuntu-latest
+    name: install + tests (${{ matrix.branch }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # prod
+          - branch: version-15
+            python: '3.11'
+            node: 18
+            mariadb: '10.6'
+          # upgrade target (DEV-2681)
+          - branch: version-16
+            python: '3.14'
+            node: 24
+            mariadb: '11.8'
+    services:
+      mariadb:
+        image: mariadb:${{ matrix.mariadb }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=2s --health-retries=3
+      # bench defaults: redis_cache on 13000, redis_queue on 11000
+      redis-cache:
+        image: redis:alpine
+        ports:
+          - 13000:6379
+      redis-queue:
+        image: redis:alpine
+        ports:
+          - 11000:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          check-latest: true
+
+      - name: Setup bench
+        run: |
+          pip install frappe-bench
+          bench init --frappe-branch ${{ matrix.branch }} --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          mysql --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
+          mysql --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
+
+      # get-app installs the app's own dependencies (boto3 is no longer bundled with frappe v16)
+      - name: Install app on throwaway site
+        working-directory: /home/runner/frappe-bench
+        run: |
+          bench get-app frappe_s3_attachment $GITHUB_WORKSPACE
+          bench new-site --db-root-password root --admin-password admin test_site
+          bench --site test_site install-app frappe_s3_attachment
+        env:
+          CI: 'Yes'
+
+      - name: bench migrate
+        working-directory: /home/runner/frappe-bench
+        run: bench --site test_site migrate
+
+      - name: Tests
+        working-directory: /home/runner/frappe-bench
+        run: |
+          bench --site test_site set-config allow_tests true
+          bench --site test_site run-tests --app frappe_s3_attachment

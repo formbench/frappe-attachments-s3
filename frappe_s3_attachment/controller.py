@@ -11,7 +11,6 @@ from urllib.parse import urlparse, parse_qs, quote, unquote
 
 import frappe
 from frappe import _, bold
-from frappe.desk.doctype.bulk_update.bulk_update import show_progress
 from frappe.utils import get_site_path, now_datetime
 
 from frappe_s3_attachment.utils import strip_special_chars, strip_non_ascii
@@ -272,6 +271,14 @@ def generate_file(key=None, file_name=None):
         frappe.local.response["body"] = "Key not found."
         return
 
+    files = frappe.get_all("File", filters={"s3_file_key": key}, pluck="name")
+    if not files:
+        frappe.throw(_("File not found"), frappe.DoesNotExistError)
+
+    # copies of an attachment share one key; read access to any of them is enough
+    if not any(frappe.has_permission("File", "read", doc=name) for name in files):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+
     s3_upload = S3Operations()
     frappe.local.response["location"] = s3_upload.get_signed_file_url(key, file_name)
     frappe.local.response["type"] = "redirect"
@@ -306,11 +313,10 @@ def migrate_existing_files():
     total = len(files)
     failed = 0
     for index, file in enumerate(files):
-        show_progress(
-            files,
-            _("Migrating local files to S3"),
-            index,
-            _("Migrating {} ({}/{})").format(file.file_name, index, total),
+        frappe.publish_progress(
+            index * 100 / total,
+            title=_("Migrating local files to S3"),
+            description=_("Migrating {} ({}/{})").format(file.file_name, index, total),
         )
         try:
             _upload_file_to_s3(file.name, s3)

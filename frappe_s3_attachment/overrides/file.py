@@ -31,9 +31,10 @@ class S3File(File):
         if not self.is_private:
             self.is_private = cint(self.file_url.startswith("/api/method"))
 
-    def get_content(self):
+    # v16 added `encodings`; v15 takes no arguments
+    def get_content(self, *args, **kwargs):
         if not self.uploaded_to_s3:
-            return super().get_content()
+            return super().get_content(*args, **kwargs)
 
         s3 = S3Operations()
         try:
