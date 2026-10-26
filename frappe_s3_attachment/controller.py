@@ -179,7 +179,7 @@ def upload_file_to_s3(doc, method=None):
     check and upload files to s3.
     """
     # copied already uploaded File
-    if is_s3_file_url(doc.file_url) and not doc.s3_file_key:
+    if is_s3_file_url(doc.file_url) and not doc.get("s3_file_key"):
         return _link_file_to_s3(doc)
 
     """
@@ -343,4 +343,4 @@ def migrate_existing_files():
 def delete_file_from_s3(doc, method):
     """Delete file from s3"""
     s3 = S3Operations()
-    s3.delete_file(doc.s3_file_key)
+    s3.delete_file(doc.get("s3_file_key"))
