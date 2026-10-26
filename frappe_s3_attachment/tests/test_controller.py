@@ -88,11 +88,12 @@ class TestGenerateFile(FrappeTestCase):
 
     def test_copy_under_another_name_is_linked_for_a_reader(self):
         frappe.set_user(USER_WITH_COPY)
+        # a URL of its own: core refuses other users a copy of an existing private URL before our check runs
         file = frappe.get_doc(
             {
                 "doctype": "File",
-                "file_name": "renamed.pdf",
-                "file_url": f"/api/method/frappe_s3_attachment.controller.generate_file?key={KEY}&file_name=renamed.pdf",
+                "file_name": "reader-copy.pdf",
+                "file_url": f"/api/method/frappe_s3_attachment.controller.generate_file?key={KEY}&file_name=reader-copy.pdf",
             }
         ).insert()
         self.assertEqual(file.s3_file_key, KEY)
