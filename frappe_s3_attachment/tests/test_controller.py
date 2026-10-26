@@ -86,6 +86,24 @@ class TestGenerateFile(FrappeTestCase):
                 }
             ).insert()
 
+    def test_copy_under_another_name_is_linked_for_a_reader(self):
+        frappe.set_user(USER_WITH_COPY)
+        file = frappe.get_doc(
+            {
+                "doctype": "File",
+                "file_name": "renamed.pdf",
+                "file_url": f"/api/method/frappe_s3_attachment.controller.generate_file?key={KEY}&file_name=renamed.pdf",
+            }
+        ).insert()
+        self.assertEqual(file.s3_file_key, KEY)
+
+    def test_setting_a_key_on_save_needs_read_access(self):
+        frappe.set_user(USER_WITHOUT_ACCESS)
+        file = frappe.get_doc({"doctype": "File", "file_url": "https://example.com/own.pdf"}).insert()
+        file.s3_file_key = KEY
+        with self.assertRaisesRegex(frappe.PermissionError, "Not permitted"):
+            file.save()
+
     def test_setting_a_key_needs_read_access(self):
         frappe.set_user(USER_WITHOUT_ACCESS)
         with self.assertRaisesRegex(frappe.PermissionError, "Not permitted"):
