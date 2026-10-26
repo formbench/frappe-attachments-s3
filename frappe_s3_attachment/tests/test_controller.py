@@ -73,3 +73,26 @@ class TestGenerateFile(FrappeTestCase):
     def test_unknown_key_is_not_found(self):
         with self.assertRaises(frappe.DoesNotExistError):
             generate_file(key="ci/2026/10/23/File/unknown.pdf")
+
+    # the message tells our check apart from core's create-permission check
+    def test_copy_under_another_name_needs_read_access(self):
+        frappe.set_user(USER_WITHOUT_ACCESS)
+        with self.assertRaisesRegex(frappe.PermissionError, "Not permitted"):
+            frappe.get_doc(
+                {
+                    "doctype": "File",
+                    "file_name": "renamed.pdf",
+                    "file_url": f"/api/method/frappe_s3_attachment.controller.generate_file?key={KEY}&file_name=renamed.pdf",
+                }
+            ).insert()
+
+    def test_setting_a_key_needs_read_access(self):
+        frappe.set_user(USER_WITHOUT_ACCESS)
+        with self.assertRaisesRegex(frappe.PermissionError, "Not permitted"):
+            frappe.get_doc(
+                {
+                    "doctype": "File",
+                    "file_url": "https://example.com/invoice.pdf",
+                    "s3_file_key": KEY,
+                }
+            ).insert()

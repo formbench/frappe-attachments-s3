@@ -199,6 +199,7 @@ def _link_file_to_s3(file):
     query = parse_qs(file_url.query)
 
     if "file_name" in query and "key" in query:
+        check_key_access(query["key"][0])
         file.db_set(
             {
                 "file_name": query["file_name"][0],
@@ -271,17 +272,23 @@ def generate_file(key=None, file_name=None):
         frappe.local.response["body"] = "Key not found."
         return
 
-    files = frappe.get_all("File", filters={"s3_file_key": key}, pluck="name")
-    if not files:
+    if not frappe.db.exists("File", {"s3_file_key": key}):
         frappe.throw(_("File not found"), frappe.DoesNotExistError)
 
-    # copies of an attachment share one key; read access to any of them is enough
-    if not any(frappe.has_permission("File", "read", doc=name) for name in files):
-        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    check_key_access(key)
 
     s3_upload = S3Operations()
     frappe.local.response["location"] = s3_upload.get_signed_file_url(key, file_name)
     frappe.local.response["type"] = "redirect"
+
+
+def check_key_access(key):
+    # generate_file serves an object to anyone who can read a File with its key, so a File may
+    # only take a key whose existing Files the user can read. Copies share one key; any will do.
+    # A key no File has yet passes, as core's validate_private_file_access does for file URLs.
+    files = frappe.get_all("File", filters={"s3_file_key": key}, pluck="name")
+    if files and not any(frappe.has_permission("File", "read", doc=name) for name in files):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 
 def is_s3_file_url(file_url):
