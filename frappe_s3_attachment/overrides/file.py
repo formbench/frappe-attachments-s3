@@ -12,7 +12,7 @@ class S3File(File):
 
     def validate(self):
         # s3_file_key is read-only in the UI only; REST clients can set it
-        if self.s3_file_key and self.has_value_changed("s3_file_key"):
+        if self.get("s3_file_key") and self.has_value_changed("s3_file_key"):
             check_key_access(self.s3_file_key)
 
         if not self.uploaded_to_s3:
