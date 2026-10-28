@@ -199,13 +199,31 @@ def _link_file_to_s3(file):
     query = parse_qs(file_url.query)
 
     if "file_name" in query and "key" in query:
-        check_key_access(query["key"][0])
+        check_key_access(query["key"][0], file)
         file.db_set(
             {
                 "file_name": query["file_name"][0],
                 "s3_file_key": query["key"][0],
             }
         )
+        return
+
+    key = get_key_from_public_url(file.file_url)
+    if key:
+        check_key_access(key, file)
+        file.db_set("s3_file_key", key)
+
+
+def get_key_from_public_url(file_url, s3=None):
+    # runs for every https File; a client can look up credentials over the network
+    if not frappe.db.get_single_value(
+        "S3 File Attachment Settings", "enable_s3_file_attachment"
+    ):
+        return None
+
+    prefix = (s3 or S3Operations()).get_file_url("", is_private=False)
+    if file_url.startswith(prefix):
+        return file_url[len(prefix):]
 
 
 def _upload_file_to_s3(file, s3=None):
@@ -272,7 +290,7 @@ def generate_file(key=None, file_name=None):
         frappe.local.response["body"] = "Key not found."
         return
 
-    if not frappe.db.exists("File", {"s3_file_key": key}):
+    if not get_files_with_key(key):
         frappe.throw(_("File not found"), frappe.DoesNotExistError)
 
     check_key_access(key)
@@ -282,13 +300,41 @@ def generate_file(key=None, file_name=None):
     frappe.local.response["type"] = "redirect"
 
 
-def check_key_access(key):
-    # generate_file serves an object to anyone who can read a File with its key, so a File may
-    # only take a key whose existing Files the user can read. Copies share one key; any will do.
-    # A key no File has yet passes, as core's validate_private_file_access does for file URLs.
-    files = frappe.get_all("File", filters={"s3_file_key": key}, pluck="name")
-    if files and not any(frappe.has_permission("File", "read", doc=name) for name in files):
+def check_key_access(key, file=None):
+    # generate_file serves an object to anyone who can read a File with its key, so a
+    # File may only take a key whose existing Files the user can read. Copies share one
+    # key; any will do. A key no File has yet passes, as core's
+    # validate_private_file_access does for file URLs.
+    files = get_files_with_key(key)
+    if files and not any(
+        frappe.has_permission("File", "read", doc=name) for name in files
+    ):
         frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+    # everyone can read a public File, so one would open a private object to all. Core's
+    # attach_files_to_document makes a File with an http(s) URL public, so only the
+    # generate_file URL keeps one private.
+    if (
+        file
+        and not (file.is_private and (file.file_url or "").startswith("/api/method"))
+        and get_files_with_key(key, {"is_private": 1})
+    ):
+        frappe.throw(_("A public File cannot point to a private S3 object"))
+
+
+def get_files_with_key(key, filters=None):
+    # a whitelisted caller can send a list, which get_all would read as an operator filter
+    if not key or not isinstance(key, str):
+        return []
+
+    # the column's collation ignores case, accents and trailing spaces, S3 keys don't;
+    # comparing here rather than in SQL keeps the index usable
+    files = frappe.get_all(
+        "File",
+        filters={**(filters or {}), "s3_file_key": key},
+        fields=["name", "s3_file_key"],
+    )
+    return [file.name for file in files if file.s3_file_key == key]
 
 
 def is_s3_file_url(file_url):
@@ -306,6 +352,8 @@ def migrate_existing_files():
     """
     Function to migrate the existing files to s3.
     """
+    frappe.only_for("System Manager")
+
     files = frappe.get_all(
         "File",
         filters={
@@ -342,5 +390,10 @@ def migrate_existing_files():
 
 def delete_file_from_s3(doc, method):
     """Delete file from s3"""
+    key = doc.get("s3_file_key")
+    # copies share the object, so it goes with the last of them
+    if not key or any(name != doc.name for name in get_files_with_key(key)):
+        return
+
     s3 = S3Operations()
-    s3.delete_file(doc.get("s3_file_key"))
+    s3.delete_file(key)

@@ -30,7 +30,7 @@ def setup_custom_fields():
                 fieldname="s3_file_key",
                 label="S3 File Key",
                 fieldtype="Data",
-                # keys (`folder/YYYY/MM/DD/doctype/hash_filename`) can exceed the default 140
+                # keys (`folder/YYYY/MM/DD/doctype/hash_filename`) can exceed 140
                 length=255,
                 # generate_file looks Files up by key
                 search_index=1,
