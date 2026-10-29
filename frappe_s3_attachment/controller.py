@@ -302,9 +302,10 @@ def generate_file(key=None, file_name=None):
 
 def check_key_access(key, file=None):
     # generate_file serves an object to anyone who can read a File with its key, so a
-    # File may only take a key whose existing Files the user can read. Copies share one
-    # key; any will do. A key no File has yet passes, as core's
-    # validate_private_file_access does for file URLs.
+    # File may only take a key whose existing Files the user can read. Copies share the
+    # object, so reading any one is enough, as core's find_file_by_url decides for local
+    # files. A key no File has yet passes, as core's validate_private_file_access does
+    # for file URLs.
     files = get_files_with_key(key)
     if files and not any(
         frappe.has_permission("File", "read", doc=name) for name in files
@@ -314,11 +315,10 @@ def check_key_access(key, file=None):
     # everyone can read a public File, so one would open a private object to all. Core's
     # attach_files_to_document makes a File with an http(s) URL public, so only the
     # generate_file URL keeps one private.
-    if (
-        file
-        and not (file.is_private and (file.file_url or "").startswith("/api/method"))
-        and get_files_with_key(key, {"is_private": 1})
-    ):
+    is_public = file and not (
+        file.is_private and (file.file_url or "").startswith("/api/method")
+    )
+    if is_public and get_files_with_key(key, {"is_private": 1}):
         frappe.throw(_("A public File cannot point to a private S3 object"))
 
 
