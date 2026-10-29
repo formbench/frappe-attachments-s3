@@ -1,0 +1,5 @@
+[pre_model_sync]
+
+[post_model_sync]
+frappe_s3_attachment.patches.index_s3_file_key
+frappe_s3_attachment.patches.link_public_copies
